@@ -1,7 +1,7 @@
 AOP 실습 및 FILE INPUT
 
 사용 기술
-프론트엔드 : JSP(AJAX, JSTL), JQUERY, HTML, CSS
+프론트엔드 : JSP(JSTL), JQUERY(AJAX), HTML, CSS
 백엔드 : JAVA(SPRING)
 
 구현 기능
