@@ -8,6 +8,11 @@
 </head>
 <body>
 
+<div class='bigPictureWrapper'>
+	<div class='bigPicture'>
+	</div>
+</div>
+
 <style>
 	.uploadResult{
 		width:100%;
@@ -24,10 +29,32 @@
 	.uploadResult ul li{
 		list-style:none;
 		padding:10px;
+		align-context : center;
+		text-align : center;
 	}
 	
 	.uploadResult ul li img{
 		width:20%;
+	}
+	
+	.bigPictureWrapper{
+		position:absolute;
+		display:none;
+		justify-content:center;
+		align-times:center;
+		top:0%;
+		width:100%;
+		height:100%;
+		background-color:yellow;
+		z-index:100;
+		background:rgba(255,255,255,0.5);
+	}
+	
+	.bigPicture{
+		position:relative;
+		display:flex;
+		justify-content:center;
+		align-times:center;
 	}
 </style>
 
@@ -52,11 +79,30 @@
   crossorigin="anonymous"></script>
   
 <script>
+function showImage(fileCallPath){
+	//alert(fileCallPath);
+	
+	$(".bigPictureWrapper").css("display","flex").show();
+	
+	$(".bigPicture")
+	.html("<img src= '/display?fileName=" + encodeURI(fileCallPath) + "'>'")
+	.animate({width:'100%', height: '100%'}, 1000);
+	
+	$(".bigPictureWrapper").on("click",function(e){
+		$(".bigPicture").animate({width:'0%', height: '0%'}, 1000);
+		setTimeout(function(){
+			$(".bigPictureWrapper").hide();
+		},1000);
+	});
+}
+
 $(document).ready(function(){
 	var regex = new RegExp("(.*?)\.(exe|sh|zip|alz|asp)$");
 	var maxSize = 5242880; // 5MB
 	var cloneObj = $(".uploadDiv").clone(); // Input 파일의 DIV 클론
 	var uploadResult = $(".uploadResult ul");
+	
+
 	
 	function checkExtension(fileName, fileSize){
 		if(fileSize > maxSize){
@@ -77,14 +123,25 @@ $(document).ready(function(){
 		
 		$(uploadResultArr).each(function(i, obj){
 			if(!obj.image){
-				str += "<li><img src='/resources/img/attach.png'>" + obj.fileName + "</li>";
+				var fileCallPath = encodeURIComponent(obj.uploadPath + "/" + obj.uuid + "_" + obj.fileName);
+				
+				str += "<li><div><a href='/download?fileName=" + fileCallPath + "'><img src='/resources/img/attach.png'>" + obj.fileName + 
+						"</a><span data-file=\'" + fileCallPath + "\' data-type='file'> x </span></div></li>";
 			}
 			else{
-				console.log("로그 이름: " + obj.fileName);
 				var fileCallPath = encodeURIComponent(obj.uploadPath + "/s_" + obj.uuid + "_" + obj.fileName);
 				
-				//str += "<li>" + obj.fileName + "</li>";
-				str += "<li><img src='/display?fileName=" + fileCallPath + "'></li>";
+				var originPath = obj.uploadPath + "\\" + obj.uuid + "_" + obj.fileName;
+				
+				//console.log("originPath : " + originPath);
+				
+				originPath = originPath.replace(new RegExp(/\\/g), "/");
+				
+				//console.log("originPath : " + originPath);
+				
+				//str += "<li><img src='/display?fileName=" + fileCallPath + "'></li>";
+				str += "<li><a href=\"javascript:showImage(\'" + originPath + "\')\"><img src='/display?fileName=" + fileCallPath + "'></a>" + 
+						"<span data-file=\'" + fileCallPath + "\' data-type='image'> x </span></li>";
 				
 				console.log("로그 : " + str);
 			}
@@ -99,8 +156,6 @@ $(document).ready(function(){
 		var inputFile = $("input[name='uploadFile']");
 		
 		var files = inputFile[0].files;
-		
-		console.log(files);
 		
 		for(var i = 0; i < files.length; ++i){
 			if(!checkExtension(files[i].name, files[i].size)){
@@ -120,14 +175,31 @@ $(document).ready(function(){
 			success : function(result){
 				alert("업로드 완료");
 				
-				showUploadedFile(result);
+				showUploadedFile(result); // 업로드 한 파일 보여주기
 				
-				$(".uploadDiv").html(cloneObj.html());
+				$(".uploadDiv").html(cloneObj.html()); // 파일 업로드시 업로드 할 리스트 지워줌
 				
 			}
 		}); // end of ajax	
 	}); // end of upload Btn
 	
+	
+	$(".uploadResult").on("click", "span", function(e){
+		var targetFile = $(this).data("file");
+		var type = $(this).data("type");
+		console.log(targetFile);
+		
+		$.ajax({
+			url: '/deleteFile',
+			data : {fileName : targetFile, type:type},
+			type : 'POST',
+			dataType : 'text',
+			success : function(result){
+				alert(result);
+			}
+		}); // end of ajax
+		
+	}); // end of uploadResult Span Btn
 	
 });
 </script>

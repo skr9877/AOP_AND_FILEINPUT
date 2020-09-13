@@ -4,6 +4,8 @@ package com.survivalking.controller;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -22,6 +24,7 @@ import org.springframework.ui.Model;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -33,6 +36,7 @@ import net.coobird.thumbnailator.Thumbnailator;
 @Controller
 @Log4j
 public class UploadController {
+	
 	private String getFolder() {
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 		
@@ -61,12 +65,12 @@ public class UploadController {
 	
 	@GetMapping("/uploadForm")
 	public void uploadForm() {
-		log.info("upload form");
+		//log.info("upload form");
 	}
 	
 	@GetMapping("/uploadAjax")
 	public void uploadAjax() {
-		log.info("upload Ajax");
+		//log.info("upload Ajax");
 	}
 	
 	@PostMapping("/uploadFormAction")
@@ -187,7 +191,7 @@ public class UploadController {
 	@GetMapping("/display")
 	@ResponseBody
 	public ResponseEntity<byte[]> getFile(String fileName){
-		log.info("File Name : " + fileName);
+		log.info("Display File Name : " + fileName);
 		
 		File file = new File("D:\\Spring_Pjt\\upload\\temp\\" + fileName);
 		
@@ -209,25 +213,81 @@ public class UploadController {
 	
 	@GetMapping(value="/download", produces= MediaType.APPLICATION_OCTET_STREAM_VALUE)
 	@ResponseBody
-	public ResponseEntity<Resource> downloadFile(String fileName){
+	public ResponseEntity<Resource> downloadFile(@RequestHeader("User-Agent") String userAgent,  String fileName){
 		
 		Resource resource = new FileSystemResource("D:\\Spring_Pjt\\upload\\temp\\" + fileName);
 		
-		log.info(resource);
+		//log.info(resource);
+		
+		if(resource.exists() == false) {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
 		
 		String resourceName = resource.getFilename();
+		
+		//removeUUID
+		String resourceOriginalName = resourceName.substring(resourceName.indexOf("_") + 1);
+		
+		//log.info("리소스 명 : " + resourceOriginalName);
 		
 		HttpHeaders headers = new HttpHeaders();
 		
 		try {
-			headers.add("Content-Disposition", "attachment; filename=" + new String(resourceName.getBytes("UTF-8"),"ISO-8859-1"));
+			String downloadName = null;
+			
+			if(userAgent.contains("Trident")) {
+				log.info("IE Browser");
+				
+				downloadName = URLEncoder.encode(resourceOriginalName,"UTF-8").replaceAll("\\+", " ");
+			}
+			else if(userAgent.contains("Edge")) {
+				log.info("Edge browser");
+				
+				downloadName = URLEncoder.encode(resourceOriginalName,"UTF-8");
+			}
+			else {
+				log.info("Chrome Browser");
+				downloadName = new String(resourceOriginalName.getBytes("UTF-8"),"ISO-8859-1");
+			}
+			
+			headers.add("Content-Disposition", "attachment; filename=" + downloadName);
 		}
 		catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 		}
 		
-		
 		return new ResponseEntity<Resource>(resource, headers, HttpStatus.OK);
+	}
+	
+	@PostMapping("/deleteFile")
+	@ResponseBody
+	public ResponseEntity<String> deleteFile(String fileName, String type){
+		
+		File file;
+		
+		try {
+			file = new File("D:\\Spring_Pjt\\upload\\temp\\" + URLDecoder.decode(fileName,"UTF-8"));
+			
+			log.info("deleteFile2: " + file.getAbsolutePath());
+			
+			file.delete();
+			
+			if(type.equals("image")) {
+				String largeFileName = file.getAbsolutePath().replace("s_", "");
+				
+				log.info("lageFileName : " + largeFileName);
+				
+				file = new File(largeFileName);
+				
+				if(file.exists()) file.delete();
+			}
+		}
+		catch(UnsupportedEncodingException e) {
+			e.printStackTrace();
+			return new ResponseEntity<String>(HttpStatus.NOT_FOUND);
+		}
+		
+		return new ResponseEntity<String>("Deleted", HttpStatus.OK);
 	}
 	
 } // end of Class
