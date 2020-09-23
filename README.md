@@ -5,9 +5,9 @@ AOP 실습 및 FILE INPUT
 백엔드 : JAVA(SPRING)
 
 구현 기능
-AOP 실습 (Advice, JointPoint, PointCut)
-파일 입 출력 및 다운로드
-파일 삭제
+- AOP 실습 (Advice, JointPoint, PointCut)
+- 로컬 디렉토리로 파일 입 출력 및 다운로드
+- 로컬 디렉토리 파일 삭제
 
 1. 구현 화면
 
